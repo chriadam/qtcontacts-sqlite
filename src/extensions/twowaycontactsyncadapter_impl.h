@@ -64,6 +64,7 @@ namespace QtContactsSqliteExtensions {
             QDateTime m_localSince;
             QDateTime m_remoteSince;
             QDateTime m_newRemoteSince;
+            QDateTime m_newLocalSince;
             QList<QContactId> m_exportedIds;
             QList<QContact> m_prevRemote;
             QList<QContact> m_mutatedPrevRemote;
@@ -314,6 +315,14 @@ bool TwoWayContactSyncAdapter::determineLocalChanges(QDateTime *localSince,
     QContactManager::Error error;
     QList<QContactId> locallyDeletedIds;
     bool cleanSync = d->m_stateData[accountId].m_localSince.isValid() ? false : true;
+
+    // store the current date time (before the fetch) as the potential newLocalSince.
+    // Normally this timestamp won't be used (instead, the max created or modified timestamp
+    // from the set of mutatedPrevRemote contacts will be used, if it is greater than
+    // the localSince timestamp used during this sync run), but in some cases it will
+    // be (eg, remote removal causes something to be removed from that list, etc).
+    d->m_stateData[accountId].m_newLocalSince = QDateTime::currentDateTimeUtc();
+
     if (!d->m_engine->fetchSyncContacts(d->m_syncTarget,
                                         d->m_stateData[accountId].m_localSince,
                                         d->m_stateData[accountId].m_exportedIds,
@@ -527,11 +536,15 @@ bool TwoWayContactSyncAdapter::storeSyncStateData(const QString &accountId)
     // finally, determine new local since timestamp and store both of them to oob.
     // NOTE: the newLocalSince timestamp may miss updates due to qtcontacts-sqlite setting modified timestamp. TODO!
     QDateTime newLocalSince = maxModificationTimestamp(d->m_stateData[accountId].m_mutatedPrevRemote);
-    if (!newLocalSince.isValid()) {
-        // if no changes have ever occurred locally, we can use the same timestamp we
-        // will use for the remote since, as that timestamp is from a valid time prior
-        // to when we retrieved local changes during this sync run.
-        newLocalSince = d->m_stateData[accountId].m_newRemoteSince;
+    if (!newLocalSince.isValid() || newLocalSince <= d->m_stateData[accountId].m_localSince) {
+        // if no changes have ever occurred locally, we can use the timestamp
+        // we cached from just before we fetched local changes during this run.
+
+        // alternatively, if the max modification timestamp is PRIOR to the current
+        // localSince, it is because a contact was removed from mutatedPrevRemote
+        // (due to a remote deletion, for example) causing the maxModificationTimestamp
+        // to regress.  In that case we can use the newLocalSince timestamp also.
+        newLocalSince = d->m_stateData[accountId].m_newLocalSince;
     }
     values.insert(QStringLiteral("remoteSince"), QVariant(d->m_stateData[accountId].m_newRemoteSince));
     values.insert(QStringLiteral("localSince"), QVariant(newLocalSince));

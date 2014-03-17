@@ -4033,14 +4033,20 @@ QContactManager::Error ContactWriter::syncUpdate(const QString &syncTarget,
 
             QList<QContact> readList;
             QContactManager::Error readError = m_reader->readContacts(QLatin1String("syncUpdate"), &readList, affectedContactIds.toList(), hint);
-            if (readError != QContactManager::NoError || readList.size() != affectedContactIds.size()) {
+            if ((readError != QContactManager::NoError && readError != QContactManager::DoesNotExistError) || readList.size() != affectedContactIds.size()) {
+                // note that if a contact was deleted locally and modified remotely,
+                // the remote-modification may reference a contact which no longer exists locally.
                 QTCONTACTS_SQLITE_WARNING(QString::fromLatin1("Failed to read contacts for sync update"));
                 return QContactManager::UnspecifiedError;
             }
 
             QMap<quint32, QContact> modifiedContacts;
             foreach (const QContact &contact, readList) {
-                modifiedContacts.insert(ContactId::databaseId(contact.id()), contact);
+                // the contact might be empty if it was removed locally and then modified remotely.
+                // TODO: support PreserveRemoteChanges semantics.
+                if (contact != QContact()) {
+                    modifiedContacts.insert(ContactId::databaseId(contact.id()), contact);
+                }
             }
 
             // Create updated versions of the affected contacts
