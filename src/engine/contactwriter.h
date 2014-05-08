@@ -112,7 +112,7 @@ public:
 
 private:
     bool beginTransaction();
-    bool commitTransaction();
+    bool commitTransaction(const QStringList &suppressSyncTargets = QStringList());
     void rollbackTransaction();
 
     QContactManager::Error create(QContact *contact, const DetailList &definitionMask, bool withinTransaction, bool withinAggregateUpdate);

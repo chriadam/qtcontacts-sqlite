@@ -113,7 +113,7 @@ bool ContactWriter::beginTransaction()
     return m_database.beginTransaction();
 }
 
-bool ContactWriter::commitTransaction()
+bool ContactWriter::commitTransaction(const QStringList &suppressSyncTargets)
 {
     if (!m_changedLocalIds.isEmpty()) {
         // Find any sync targets affected by modified local contacts
@@ -150,7 +150,17 @@ bool ContactWriter::commitTransaction()
         m_presenceChangedIds.clear();
     }
     if (!m_changedSyncTargets.isEmpty()) {
-        m_notifier->syncContactsChanged(m_changedSyncTargets.toList());
+        // If the changes were caused by the sync adapter for this
+        // sync target, then we don't need to emit the change signal
+        // for that sync target (as that signal is basically to tell
+        // the sync adapter that it may need to perform a sync).
+        QStringList changedSyncTargets;
+        Q_FOREACH (const QString &syncTarget, m_changedSyncTargets) {
+            if (!suppressSyncTargets.contains(syncTarget)) {
+                changedSyncTargets.append(syncTarget);
+            }
+        }
+        m_notifier->syncContactsChanged(changedSyncTargets);
         m_changedSyncTargets.clear();
     }
     if (!m_removedIds.isEmpty()) {
@@ -1190,7 +1200,7 @@ QContactManager::Error ContactWriter::updateSyncContacts(const QString &syncTarg
         return error;
     }
 
-    if (!commitTransaction()) {
+    if (!commitTransaction(QStringList() << syncTarget)) {
         QTCONTACTS_SQLITE_WARNING(QString::fromLatin1("Failed to commit database after sync contacts update"));
         return QContactManager::UnspecifiedError;
     }
