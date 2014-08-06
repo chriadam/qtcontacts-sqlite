@@ -482,9 +482,13 @@ int main(int argc, char  *argv[])
         firstNameStartsA.setDetailType(QContactName::Type, QContactName::FieldFirstName);
         firstNameStartsA.setValue("A");
         firstNameStartsA.setMatchFlags(QContactDetailFilter::MatchStartsWith);
+        QContactDetailFilter firstNameStartsZ;
+        firstNameStartsZ.setDetailType(QContactName::Type, QContactName::FieldFirstName);
+        firstNameStartsZ.setValue("Z");
+        firstNameStartsZ.setMatchFlags(QContactDetailFilter::MatchStartsWith);
         fh.setDetailTypesHint(QList<QContactDetail::DetailType>());
         syncTimer.start();
-        readContacts = manager.contacts(firstNameStartsA, QList<QContactSortOrder>(), fh);
+        readContacts = manager.contacts(firstNameStartsA | firstNameStartsZ, QList<QContactSortOrder>(), fh);
         ste = syncTimer.elapsed();
         qDebug() << "    reading filtered (" << readContacts.size() << "), no relationships, took" << ste << "milliseconds (" << ((1.0 * ste) / (1.0 * td.size())) << "msec per contact )";
         elapsedTimeTotal += ste;
@@ -578,9 +582,13 @@ int main(int argc, char  *argv[])
         firstNameStartsA.setDetailType(QContactName::Type, QContactName::FieldFirstName);
         firstNameStartsA.setValue("A");
         firstNameStartsA.setMatchFlags(QContactDetailFilter::MatchStartsWith);
+        QContactDetailFilter firstNameStartsZ;
+        firstNameStartsZ.setDetailType(QContactName::Type, QContactName::FieldFirstName);
+        firstNameStartsZ.setValue("Z");
+        firstNameStartsZ.setMatchFlags(QContactDetailFilter::MatchStartsWith);
         fh.setDetailTypesHint(QList<QContactDetail::DetailType>());
         syncTimer.start();
-        readContacts = manager.contacts(firstNameStartsA, QList<QContactSortOrder>(), fh);
+        readContacts = manager.contacts(firstNameStartsA | firstNameStartsZ, QList<QContactSortOrder>(), fh);
         ste = syncTimer.elapsed();
         qDebug() << "    reading filtered (" << readContacts.size() << "), no relationships, took" << ste << "milliseconds";
         elapsedTimeTotal += ste;
@@ -648,6 +656,10 @@ int main(int argc, char  *argv[])
              << "milliseconds (" << ((1.0 * aggregationElapsed) / (1.0 * contactsToAggregate.size())) << " msec per aggregated contact )";
     elapsedTimeTotal += aggregationElapsed;
 
+    QContactDetailFilter allSyncTargets;
+    allSyncTargets.setDetailType(QContactSyncTarget::Type, QContactSyncTarget::FieldSyncTarget);
+    totalAggregatesInDatabase = manager.contactIds().count();
+    int totalContactsInDatabase = manager.contactIds(allSyncTargets).count();
 
     // The next test is about updating existing contacts, amongst a large set.
     // We're especially interested in presence updates, as these are common.
@@ -684,7 +696,9 @@ int main(int argc, char  *argv[])
     manager.saveContacts(&contactsToUpdate);
     qint64 presenceElapsed = syncTimer.elapsed();
     totalAggregatesInDatabase = manager.contactIds().count();
-    qDebug() << "    update ( batch of" << contactsToUpdate.size() << ") presence+nick+avatar (with" << totalAggregatesInDatabase << "existing in database, all overlap):" << presenceElapsed
+    totalContactsInDatabase = manager.contactIds(allSyncTargets).count();
+    qDebug() << "    update ( batch of" << contactsToUpdate.size() << ") presence+nick+avatar (with" << totalAggregatesInDatabase << "aggregates and"
+             << totalContactsInDatabase << "contacts existing in database, all overlap):" << presenceElapsed
              << "milliseconds (" << ((1.0 * presenceElapsed) / (1.0 * contactsToUpdate.size())) << " msec per updated contact )";
     elapsedTimeTotal += presenceElapsed;
 
@@ -716,7 +730,9 @@ int main(int argc, char  *argv[])
     manager.saveContacts(&contactsToUpdate);
     presenceElapsed = syncTimer.elapsed();
     totalAggregatesInDatabase = manager.contactIds().count();
-    qDebug() << "    update ( batch of" << contactsToUpdate.size() << ") presence+nick+avatar (with" << totalAggregatesInDatabase << "existing in database, all overlap):" << presenceElapsed
+    totalContactsInDatabase = manager.contactIds(allSyncTargets).count();
+    qDebug() << "    update ( batch of" << contactsToUpdate.size() << ") presence+nick+avatar (with" << totalAggregatesInDatabase << "aggregates and"
+             << totalContactsInDatabase << "contacts existing in database, all overlap):" << presenceElapsed
              << "milliseconds (" << ((1.0 * presenceElapsed) / (1.0 * contactsToUpdate.size())) << " msec per updated contact )";
     elapsedTimeTotal += presenceElapsed;
 
@@ -771,7 +787,9 @@ int main(int argc, char  *argv[])
     manager.saveContacts(&contactsToUpdate);
     presenceElapsed = syncTimer.elapsed();
     totalAggregatesInDatabase = manager.contactIds().count();
-    qDebug() << "    update ( batch of" << contactsToUpdate.size() << ") presence+nick+avatar (with" << totalAggregatesInDatabase << "existing in database, all overlap):" << presenceElapsed
+    totalContactsInDatabase = manager.contactIds(allSyncTargets).count();
+    qDebug() << "    update ( batch of" << contactsToUpdate.size() << ") presence+nick+avatar (with" << totalAggregatesInDatabase << "aggregates and"
+             << totalContactsInDatabase << "contacts existing in database, all overlap):" << presenceElapsed
              << "milliseconds (" << ((1.0 * presenceElapsed) / (1.0 * contactsToUpdate.size())) << " msec per updated contact )";
     elapsedTimeTotal += presenceElapsed;
 
@@ -818,7 +836,9 @@ int main(int argc, char  *argv[])
     manager.saveContacts(&contactsToUpdate);
     presenceElapsed = syncTimer.elapsed();
     totalAggregatesInDatabase = manager.contactIds().count();
-    qDebug() << "    update ( batch of" << contactsToUpdate.size() << ") presence+nick+avatar (with" << totalAggregatesInDatabase << "existing in database, no overlap):" << presenceElapsed
+    totalContactsInDatabase = manager.contactIds(allSyncTargets).count();
+    qDebug() << "    update ( batch of" << contactsToUpdate.size() << ") presence+nick+avatar (with" << totalAggregatesInDatabase << "aggregates and"
+             << totalContactsInDatabase << "contacts existing in database, no overlap):" << presenceElapsed
              << "milliseconds (" << ((1.0 * presenceElapsed) / (1.0 * contactsToUpdate.size())) << " msec per updated contact )";
     elapsedTimeTotal += presenceElapsed;
 
@@ -874,7 +894,9 @@ int main(int argc, char  *argv[])
     manager.saveContacts(&contactsToUpdate);
     presenceElapsed = syncTimer.elapsed();
     totalAggregatesInDatabase = manager.contactIds().count();
-    qDebug() << "    update ( batch of" << contactsToUpdate.size() << ") presence+nick+avatar (with" << totalAggregatesInDatabase << "existing in database, partial overlap):" << presenceElapsed
+    totalContactsInDatabase = manager.contactIds(allSyncTargets).count();
+    qDebug() << "    update ( batch of" << contactsToUpdate.size() << ") presence+nick+avatar (with" << totalAggregatesInDatabase << "aggregates and"
+             << totalContactsInDatabase << "contacts existing in database, partial overlap):" << presenceElapsed
              << "milliseconds (" << ((1.0 * presenceElapsed) / (1.0 * contactsToUpdate.size())) << " msec per updated contact )";
     elapsedTimeTotal += presenceElapsed;
 
@@ -895,7 +917,9 @@ int main(int argc, char  *argv[])
     manager.saveContacts(&contactsToUpdate);
     presenceElapsed = syncTimer.elapsed();
     totalAggregatesInDatabase = manager.contactIds().count();
-    qDebug() << "    update ( batch of" << contactsToUpdate.size() << ") presence only (with" << totalAggregatesInDatabase << "existing in database, partial overlap):" << presenceElapsed
+    totalContactsInDatabase = manager.contactIds(allSyncTargets).count();
+    qDebug() << "    update ( batch of" << contactsToUpdate.size() << ") presence only (with" << totalAggregatesInDatabase << "aggregates and"
+             << totalContactsInDatabase << "contacts existing in database, partial overlap):" << presenceElapsed
              << "milliseconds (" << ((1.0 * presenceElapsed) / (1.0 * contactsToUpdate.size())) << " msec per updated contact )";
     elapsedTimeTotal += presenceElapsed;
 
@@ -919,7 +943,9 @@ int main(int argc, char  *argv[])
     manager.saveContacts(&contactsToUpdate, typeMask);
     presenceElapsed = syncTimer.elapsed();
     totalAggregatesInDatabase = manager.contactIds().count();
-    qDebug() << "    update ( batch of" << contactsToUpdate.size() << ") masked presence only (with" << totalAggregatesInDatabase << "existing in database, partial overlap):" << presenceElapsed
+    totalContactsInDatabase = manager.contactIds(allSyncTargets).count();
+    qDebug() << "    update ( batch of" << contactsToUpdate.size() << ") masked presence only (with" << totalAggregatesInDatabase << "aggregates and"
+             << totalContactsInDatabase << "contacts existing in database, partial overlap):" << presenceElapsed
              << "milliseconds (" << ((1.0 * presenceElapsed) / (1.0 * contactsToUpdate.size())) << " msec per updated contact )";
     elapsedTimeTotal += presenceElapsed;
 
@@ -930,6 +956,100 @@ int main(int argc, char  *argv[])
         morePrefillIds.append(morePrefillData.at(j).id());
     }
     manager.removeContacts(morePrefillIds);
+
+    // Now performing a "simple" presence update: generate 500 contacts and update 200 presences.
+    // Each contact has 1 aggregate and 1 constituent.
+    manager.removeContacts(manager.contactIds());
+    totalAggregatesInDatabase = manager.contactIds().count();
+    totalContactsInDatabase = manager.contactIds(allSyncTargets).count();
+    qDebug() << "currently have:" << totalAggregatesInDatabase << "aggregates and" << totalContactsInDatabase << "altogether in database.";
+    qDebug() << "\n\nGenerating contacts for simple presence update test.";
+    QList<QContact> simplePresenceContacts;
+    QStringList spFirstNames = generateNonOverlappingFirstNamesList();
+    QStringList spLastNames = generateLastNamesList();
+    QStringList spPhones = generatePhoneNumbersList();
+    QStringList spEmails = generateEmailProvidersList();
+    int spTotalCount = 0;
+    Q_FOREACH(const QString &fn, spFirstNames) {
+        Q_FOREACH(const QString &ln, spLastNames) {
+            QContact spc;
+            QContactName spcn;
+            spcn.setFirstName(fn);
+            spcn.setLastName(ln);
+            spc.saveDetail(&spcn);
+            QContactPhoneNumber spcp;
+            spcp.setNumber(spPhones[rand() % spPhones.size()]);
+            spc.saveDetail(&spcp);
+            QContactEmailAddress spce;
+            spce.setEmailAddress(QStringLiteral("%1.%2@%3").arg(fn).arg(ln).arg(spEmails[rand() % spEmails.size()]));
+            spc.saveDetail(&spce);
+            QContactSyncTarget spcst;
+            spcst.setSyncTarget("simplepresence");
+            spc.saveDetail(&spcst);
+            simplePresenceContacts.append(spc);
+            spTotalCount++;
+            if (spTotalCount >= 500) {
+                break;
+            }
+        }
+        if (spTotalCount >= 500) {
+            break;
+        }
+    }
+    syncTimer.start();
+    manager.saveContacts(&simplePresenceContacts);
+    presenceElapsed = syncTimer.elapsed();
+    qDebug() << "    Adding" << simplePresenceContacts.size() << "contacts took:" << presenceElapsed << "msec"
+             << "(" << ((1.0 * presenceElapsed) / (1.0 * simplePresenceContacts.size())) << " msec per updated contact )";
+    elapsedTimeTotal += presenceElapsed;
+
+    // now add presence for 200 of those contacts, and save them.
+    QList<QContact> updatedSimplePresenceContacts;
+    for (int j = 101; j < 301; ++j) {
+        QContact curr = simplePresenceContacts.at(j);
+        QContactPresence cp = curr.detail<QContactPresence>();
+        cp.setPresenceState(static_cast<QContactPresence::PresenceState>((j%3)+1));
+        curr.saveDetail(&cp);
+        updatedSimplePresenceContacts.append(curr);
+    }
+
+    // perform a batch save passing a detail type mask to allow optimisation.
+    typeMask.clear();
+    typeMask << QContactDetail::TypePresence;
+    syncTimer.start();
+    manager.saveContacts(&updatedSimplePresenceContacts, typeMask);
+    presenceElapsed = syncTimer.elapsed();
+    qDebug() << "    Adding presence to" << updatedSimplePresenceContacts.size()
+             << "of those" << simplePresenceContacts.size() << "contacts took:" << presenceElapsed << "msec"
+             << "(" << ((1.0 * presenceElapsed) / (1.0 * updatedSimplePresenceContacts.size())) << " msec per updated contact )";
+    elapsedTimeTotal += presenceElapsed;
+
+    // now do a similar modification.  This will result in update (rather than creation) of presence for each contact.
+    for (int j = 0; j < updatedSimplePresenceContacts.size(); ++j) {
+        QContact curr = updatedSimplePresenceContacts[j];
+        QContactPresence cp = curr.detail<QContactPresence>();
+        cp.setPresenceState(static_cast<QContactPresence::PresenceState>((j%3)+1));
+        curr.saveDetail(&cp);
+        updatedSimplePresenceContacts.replace(j, curr);
+    }
+
+    // perform a batch save passing a detail type mask to allow optimisation.
+    typeMask.clear();
+    typeMask << QContactDetail::TypePresence;
+    syncTimer.start();
+    manager.saveContacts(&updatedSimplePresenceContacts, typeMask);
+    presenceElapsed = syncTimer.elapsed();
+    qDebug() << "    Updating presence of those same" << updatedSimplePresenceContacts.size()
+             << "of" << simplePresenceContacts.size() << "contacts took:" << presenceElapsed << "msec"
+             << "(" << ((1.0 * presenceElapsed) / (1.0 * updatedSimplePresenceContacts.size())) << " msec per updated contact )";
+    elapsedTimeTotal += presenceElapsed;
+
+    // clean up the added presence contacts.
+    QList<QContactId> spCleanup;
+    Q_FOREACH (const QContact &c, simplePresenceContacts) {
+        spCleanup.append(c.id());
+    }
+    manager.removeContacts(spCleanup);
 
     qDebug() << "\n\nCumulative elapsed time:" << elapsedTimeTotal << "milliseconds";
     return 0;
